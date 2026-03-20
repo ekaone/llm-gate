@@ -1,0 +1,64 @@
+{
+  "name": "@ekaone/llm-gate",
+  "version": "0.0.1",
+  "description": "Lightweight LLM budget & token guard. Prevents Denial of Wallet attacks with a circuit-breaker state machine.",
+  "keywords": [
+    "llm",
+    "token",
+    "budget",
+    "guard",
+    "circuit-breaker",
+    "ai",
+    "anthropic",
+    "openai",
+    "rate-limit",
+    "agent"
+  ],
+  "author": {
+    "name": "Eka Prasetia",
+    "email": "ekaone3033@gmail.com",
+    "url": "https://prasetia.me"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ekaone/llm-gate.git"
+  },
+  "type": "module",
+  "main":   "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types":  "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import":  "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "types":   "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build && npm test",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/ui": "^4.1.0",
+    "rimraf": "^6.1.3",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
