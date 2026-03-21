@@ -1,5 +1,5 @@
-import { BudgetExceededError } from "./errors/index.js"
-import { defaultPricing, resolveCost } from "./pricing/index.js"
+import { BudgetExceededError } from "./errors/index.js";
+import { defaultPricing, resolveCost } from "./pricing/index.js";
 import type {
   CircuitState,
   GateInstance,
@@ -9,18 +9,18 @@ import type {
   ThrottleReason,
   TripReason,
   UsageRecord,
-} from "./types/index.js"
+} from "./types/index.js";
 
-const DEFAULT_WINDOW_MS  = 60_000  // 1 minute
-const DEFAULT_THROTTLE   = 0.8     // 80% of limit triggers THROTTLED
-const SENTINEL_LIMIT     = Infinity // when a dimension is not configured
+const DEFAULT_WINDOW_MS = 60_000; // 1 minute
+const DEFAULT_THROTTLE = 0.8; // 80% of limit triggers THROTTLED
+const SENTINEL_LIMIT = Infinity; // when a dimension is not configured
 
 function makeMetric(used: number, limit: number): GateMetric {
   return {
     used,
     remaining: limit === Infinity ? Infinity : Math.max(0, limit - used),
     limit: limit === Infinity ? -1 : limit,
-  }
+  };
 }
 
 /**
@@ -40,143 +40,154 @@ function makeMetric(used: number, limit: number): GateMetric {
  * ```
  */
 export function createGate(options: GateOptions = {}): GateInstance {
-  // ── Config ──────────────────────────────────────────────────────────────────
-  const maxTokens   = options.maxTokens   ?? SENTINEL_LIMIT
-  const maxBudget   = options.maxBudget   ?? SENTINEL_LIMIT
-  const maxRequests = options.maxRequests ?? SENTINEL_LIMIT
-  const windowMs    = options.windowMs    ?? DEFAULT_WINDOW_MS
-  const throttleAt  = options.throttleAt  ?? DEFAULT_THROTTLE
-  const pricing     = { ...defaultPricing, ...options.pricing }
+  // Config
+  const maxTokens = options.maxTokens ?? SENTINEL_LIMIT;
+  const maxBudget = options.maxBudget ?? SENTINEL_LIMIT;
+  const maxRequests = options.maxRequests ?? SENTINEL_LIMIT;
+  const windowMs = options.windowMs ?? DEFAULT_WINDOW_MS;
+  const throttleAt = options.throttleAt ?? DEFAULT_THROTTLE;
+  const pricing = { ...defaultPricing, ...options.pricing };
 
-  if (maxTokens === SENTINEL_LIMIT && maxBudget === SENTINEL_LIMIT && maxRequests === SENTINEL_LIMIT) {
+  if (
+    maxTokens === SENTINEL_LIMIT &&
+    maxBudget === SENTINEL_LIMIT &&
+    maxRequests === SENTINEL_LIMIT
+  ) {
     throw new Error(
-      "[llm-gate] At least one limit must be set: maxTokens, maxBudget, or maxRequests."
-    )
+      "[llm-gate] At least one limit must be set: maxTokens, maxBudget, or maxRequests.",
+    );
   }
 
-  // ── Internal State ──────────────────────────────────────────────────────────
-  let tokensUsed   = 0
-  let budgetUsed   = 0
-  let requestCount = 0
-  let state: CircuitState = "OPEN"
-  let windowStart  = Date.now()
+  // Internal State
+  let tokensUsed = 0;
+  let budgetUsed = 0;
+  let requestCount = 0;
+  let state: CircuitState = "OPEN";
+  let windowStart = Date.now();
 
-  // ── Window Management ───────────────────────────────────────────────────────
+  // Window Management
   function checkWindowReset(): void {
-    const now = Date.now()
+    const now = Date.now();
     if (now - windowStart >= windowMs) {
-      const prevState = state
-      tokensUsed   = 0
-      budgetUsed   = 0
-      requestCount = 0
-      state        = "OPEN"
-      windowStart  = now
+      const prevState = state;
+      tokensUsed = 0;
+      budgetUsed = 0;
+      requestCount = 0;
+      state = "OPEN";
+      windowStart = now;
 
       if (prevState !== "OPEN") {
-        options.onReset?.(buildStatus())
+        options.onReset?.(buildStatus());
       }
     }
   }
 
-  // ── Status Builder ──────────────────────────────────────────────────────────
+  // Status Builder
   function buildStatus(): GateStatus {
-    const resets = new Date(windowStart + windowMs)
+    const resets = new Date(windowStart + windowMs);
 
-    let reason: TripReason | ThrottleReason = null
+    let reason: TripReason | ThrottleReason = null;
 
     if (state === "TRIPPED") {
-      if (tokensUsed >= maxTokens)     reason = "token_limit_exceeded"
-      else if (budgetUsed >= maxBudget) reason = "budget_limit_exceeded"
-      else                              reason = "request_limit_exceeded"
+      if (tokensUsed >= maxTokens) reason = "token_limit_exceeded";
+      else if (budgetUsed >= maxBudget) reason = "budget_limit_exceeded";
+      else reason = "request_limit_exceeded";
     } else if (state === "THROTTLED") {
-      if (tokensUsed   >= maxTokens   * throttleAt) reason = "approaching_token_limit"
-      else if (budgetUsed   >= maxBudget   * throttleAt) reason = "approaching_budget_limit"
-      else                                               reason = "approaching_request_limit"
+      if (tokensUsed >= maxTokens * throttleAt)
+        reason = "approaching_token_limit";
+      else if (budgetUsed >= maxBudget * throttleAt)
+        reason = "approaching_budget_limit";
+      else reason = "approaching_request_limit";
     }
 
     return {
       state,
       allowed: state !== "TRIPPED",
       reason,
-      tokens:   makeMetric(tokensUsed,   maxTokens),
-      budget:   makeMetric(budgetUsed,   maxBudget),
+      tokens: makeMetric(tokensUsed, maxTokens),
+      budget: makeMetric(budgetUsed, maxBudget),
       requests: makeMetric(requestCount, maxRequests),
       resets,
-    }
+    };
   }
 
-  // ── State Machine ───────────────────────────────────────────────────────────
+  // State Machine
   function evaluateState(): void {
-    const prevState = state
+    const prevState = state;
 
     // Check TRIPPED first — hard limits
     if (
-      tokensUsed   >= maxTokens   ||
-      budgetUsed   >= maxBudget   ||
+      tokensUsed >= maxTokens ||
+      budgetUsed >= maxBudget ||
       requestCount >= maxRequests
     ) {
-      state = "TRIPPED"
+      state = "TRIPPED";
       if (prevState !== "TRIPPED") {
-        options.onTripped?.(buildStatus())
+        options.onTripped?.(buildStatus());
       }
-      return
+      return;
     }
 
     // Check THROTTLED — soft warning threshold
     if (
-      tokensUsed   >= maxTokens   * throttleAt ||
-      budgetUsed   >= maxBudget   * throttleAt ||
+      tokensUsed >= maxTokens * throttleAt ||
+      budgetUsed >= maxBudget * throttleAt ||
       requestCount >= maxRequests * throttleAt
     ) {
-      state = "THROTTLED"
+      state = "THROTTLED";
       if (prevState !== "THROTTLED") {
-        options.onThrottled?.(buildStatus())
+        options.onThrottled?.(buildStatus());
       }
-      return
+      return;
     }
 
-    state = "OPEN"
+    state = "OPEN";
   }
 
-  // ── Public API ──────────────────────────────────────────────────────────────
+  // Public API
 
   function record(usage: UsageRecord): void {
-    checkWindowReset()
+    checkWindowReset();
 
-    const cost = resolveCost(usage.model, usage.inputTokens, usage.outputTokens, pricing)
+    const cost = resolveCost(
+      usage.model,
+      usage.inputTokens,
+      usage.outputTokens,
+      pricing,
+    );
 
-    tokensUsed   += usage.inputTokens + usage.outputTokens
-    budgetUsed   += cost
-    requestCount += 1
+    tokensUsed += usage.inputTokens + usage.outputTokens;
+    budgetUsed += cost;
+    requestCount += 1;
 
-    evaluateState()
+    evaluateState();
   }
 
   function check(): GateStatus {
-    checkWindowReset()
-    return buildStatus()
+    checkWindowReset();
+    return buildStatus();
   }
 
   function guard(): void {
-    checkWindowReset()
-    const status = buildStatus()
+    checkWindowReset();
+    const status = buildStatus();
     if (status.state === "TRIPPED") {
-      throw new BudgetExceededError(status)
+      throw new BudgetExceededError(status);
     }
   }
 
   function snapshot(): GateStatus {
-    return buildStatus()
+    return buildStatus();
   }
 
   function reset(): void {
-    tokensUsed   = 0
-    budgetUsed   = 0
-    requestCount = 0
-    state        = "OPEN"
-    windowStart  = Date.now()
-    options.onReset?.(buildStatus())
+    tokensUsed = 0;
+    budgetUsed = 0;
+    requestCount = 0;
+    state = "OPEN";
+    windowStart = Date.now();
+    options.onReset?.(buildStatus());
   }
 
-  return { record, check, guard, snapshot, reset }
+  return { record, check, guard, snapshot, reset };
 }

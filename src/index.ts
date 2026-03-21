@@ -1,4 +1,4 @@
-// ─── Core ─
+// Core
 export { createGate } from "./gate.js";
 
 // Errors

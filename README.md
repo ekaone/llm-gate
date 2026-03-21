@@ -2,8 +2,6 @@
 
 [![llm-gate banner](https://res.cloudinary.com/ddjsyskef/image/upload/v1774001133/Github/gqyyegcemo7sc2eggson.png)](https://res.cloudinary.com/ddjsyskef/image/upload/v1774001133/Github/gqyyegcemo7sc2eggson.png)
 
-> Not Released Yet
-
 > Lightweight LLM budget & token guard. Prevents **Denial of Wallet** attacks with a zero-dependency circuit-breaker state machine.
 
 ---
