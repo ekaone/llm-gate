@@ -1,6 +1,6 @@
 {
   "name": "@ekaone/llm-gate",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Lightweight LLM budget & token guard. Prevents Denial of Wallet attacks with a circuit-breaker state machine.",
   "keywords": [
     "llm",

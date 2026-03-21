@@ -1,4 +1,11 @@
-// Core
+/**
+ * @file index.ts
+ * @description Core entry point for @ekaone/llm-gate.
+ * Lightweight circuit-breaker for AI/LLM cost and security management.
+ * @author Eka Prasetia
+ * @license MIT
+ */
+
 export { createGate } from "./gate.js";
 
 // Errors

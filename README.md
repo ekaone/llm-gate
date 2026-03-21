@@ -342,4 +342,14 @@ import type {
 
 ## License
 
-MIT © [ekaone](https://github.com/ekaone)
+MIT © [Eka Prasetia](https://prasetia.me/)
+
+## Links
+
+- [npm Package](https://www.npmjs.com/package/@ekaone/llm-gate)
+- [GitHub Repository](https://github.com/ekaone/llm-gate)
+- [Issue Tracker](https://github.com/ekaone/llm-gate/issues)
+
+---
+
+⭐ If this library helps you, please consider giving it a star on GitHub!
